@@ -1,0 +1,12 @@
+<RCC>
+    <qresource prefix="/">
+        <file>qml/main.qml</file>
+        <file>qml/LibraryPage.qml</file>
+        <file>qml/PlayerPage.qml</file>
+        <file>qml/TimeLabel.qml</file>
+        <file>qml/SettingsPage.qml</file>
+    </qresource>
+    <qresource prefix="/img">
+        <file>../banner.jpg</file>
+    </qresource>
+</RCC>
