@@ -43,7 +43,7 @@ void Player::updateTime() {
 }
 
 void Player::updateProgress() {
-    if (mp_progress) {
+    if (mp_progress && !mpv.pause()) {
         auto r = mp_progress->update(*mp_chapter, chapter_time);
         if (!r)
             qDebug() << "Progress: Failed" << r.error();
@@ -68,11 +68,12 @@ Result<void> Player::playBook(BookPtr &&book) {
 }
 
 Result<void> Player::seekBook(qint64 total_time) {
-    return mp_book->getChapterAt(total_time).bind([this](ChapterPtr c) {
+    return mp_book->getChapterAt2(total_time)
+            .bind([this](std::pair<ChapterPtr, int64_t> p) -> Result<void> {
+        auto [c, time] = std::move(p);
         if (c)
-            return playChapter(std::move(c));
-        // TODO: figure out time inside chapter
-        return Result<void>(Error("Seek out of range"));
+            return playChapter(std::move(c), time);
+        return Err(Error("Seek out of range"));
     });
 }
 
@@ -89,9 +90,10 @@ Result<void> Player::playChapter(ChapterPtr &&c, long start_time, bool start) {
         QStringList opts;
         if (start_offset > 0)
             opts << QStringLiteral("start=%1").arg(start_offset);
-        if (!start)
-            opts << "pause";
+        //if (!start) // this doesn't seem to work properly.
+        //    opts << "pause";
         mpv.command(QVariantList() << "loadfile" << mp_chapter->get(Chapter::media) << "replace" << opts.join(","));
+        mpv.set_pause(!start);
         return Ok();
     });
 }
@@ -100,7 +102,7 @@ Result<void> Player::playResume(Library::ProgressPtr &&prog, bool start) {
     mp_progress = std::move(prog);
     QQmlEngine::setObjectOwnership(mp_progress.get(), QQmlEngine::CppOwnership);
     return [this]() -> Result<void> {
-        if (mp_book && mp_book->getId() != mp_progress->get(Progress::book_id))
+        if (!mp_book || mp_book && mp_book->getId() != mp_progress->get(Progress::book_id))
             return mp_progress->getBook().bind([this](auto b) {
                 return setBook(std::move(b));
             });

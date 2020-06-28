@@ -28,6 +28,8 @@ public:
     QString toString() const;
 
     std::optional<QSqlError> sqlError() const;
+
+    void debugPrint() const;
 };
 
 

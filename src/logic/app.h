@@ -6,7 +6,6 @@
 
 #include <QObject>
 #include <QQuickImageProvider>
-#include <QTimer>
 
 int main(int, char**);
 
@@ -27,7 +26,6 @@ class App : public QObject
 
     Player m_player;
     Library::Database *mp_db;
-    QTimer m_timer;
 
     Q_PROPERTY(Player *player READ player);
 
@@ -43,7 +41,7 @@ public:
     Q_INVOKABLE bool seekChapter(long time);
     Q_INVOKABLE bool nextChapter();
     Q_INVOKABLE bool previousChapter();
-    Q_INVOKABLE bool prepareLast();
+    bool loadRecentBook();
 
     Q_INVOKABLE QVariant booksModel();
 

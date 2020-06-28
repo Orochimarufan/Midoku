@@ -72,7 +72,7 @@ DBResult<std::pair<std::unique_ptr<Chapter>, int64_t>> Book::getChapterAt2(long 
                                              Sel::OrderBy(Chapter::chapter)))
             .bind([this, &time] (QSqlQuery &&q) -> DBResult<std::pair<std::unique_ptr<Chapter>, int64_t>> {
         while (q.next()) {
-            long len = q.value(Chapter::Table::Columns::index<decltype(Chapter::chapter)>).toInt();
+            long len = q.value(Chapter::table.column_index(Chapter::length)).toInt();
             qDebug() << len;
             if (time < len) {
                 return Ok(std::pair{std::make_unique<Chapter>(database(), q.record()), time});

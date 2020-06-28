@@ -3,6 +3,7 @@
 #include <QDebug>
 #include <QQmlContext>
 #include <QStandardPaths>
+#include <QDir>
 
 #include <QProgressDialog>
 #include <QApplication>
@@ -40,7 +41,14 @@ int main(int argc, char *argv[]) {
     qmlRegisterAnonymousType<Midoku::App>("midoku.mpv", 1);
     qmlRegisterAnonymousType<Midoku::Player>("midoku.mpv", 1);
 
-    Database db("test.db");
+    auto appdata = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+    {
+        auto dir = QDir(appdata);
+        if (!dir.exists())
+            dir.mkpath(".");
+    }
+
+    Database db(appdata + "/test.db");
     {
         auto res = upgrade_schema(&db);
         if (!res) {
@@ -125,6 +133,7 @@ int main(int argc, char *argv[]) {
 #endif
 
     Midoku::App app(&db);
+    app.loadRecentBook();
 
     QQmlApplicationEngine engine;
     engine.addImageProvider("blob", new Midoku::QmlBlobImageProvider(&db));

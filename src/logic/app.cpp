@@ -35,11 +35,8 @@ QImage QmlBlobImageProvider::requestImage(const QString &id, QSize *size, const 
 App::App(Library::Database *db) :
     QObject(),
     m_player(this),
-    mp_db(db),
-    m_timer()
-{
-    m_timer.setSingleShot(true);
-}
+    mp_db(db)
+{}
 
 // QML
 bool App::playBook(long bookid) {
@@ -49,7 +46,10 @@ bool App::playBook(long bookid) {
 }
 
 bool App::seekBook(long total_time) {
-    return m_player.seekBook(total_time);
+    auto r = m_player.seekBook(total_time);
+    if (!r)
+        r.error().debugPrint();
+    return r;
 }
 
 bool App::seekChapter(long time) {
@@ -65,14 +65,12 @@ bool App::previousChapter() {
     return m_player.previousChapter().value_or(false);
 }
 
-bool App::prepareLast() {
-    m_timer.callOnTimeout([this] () {
-        return Library::Progress::findMostRecent(*mp_db).bind([this] (auto p) {
+bool App::loadRecentBook() {
+    return Library::Progress::findMostRecent(*mp_db).bind([this] (auto p) -> Result<void> {
+        if (p)
             return m_player.playResume(std::move(p), false);
-        });
+        return Util::Ok();
     });
-    //m_timer.start(1000);
-    return false;
 }
 
 

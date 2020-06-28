@@ -110,8 +110,6 @@ Kirigami.Page {
             text: player.chapter.chapter + ". " + player.chapter.title
         }
 
-        Component.onCompleted: app.prepareLast()
-
         Slider {
             Layout.fillWidth: true
 

@@ -1,5 +1,7 @@
 #include "error.h"
 
+#include <QDebug>
+
 
 namespace Midoku {
 
@@ -28,6 +30,13 @@ std::optional<QSqlError> Error::sqlError() const {
         return get<1>(*this);
     else
         return std::nullopt;
+}
+
+void Error::debugPrint() const {
+    if (index() == 0)
+        qDebug() << get<0>(*this);
+    else
+        qDebug() << get<1>(*this);
 }
 
 }
