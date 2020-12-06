@@ -57,6 +57,10 @@ bool App::seekChapter(long time) {
     return true;
 }
 
+bool App::seekRelative(long diff) {
+    return m_player.seekRelative(diff);
+}
+
 bool App::nextChapter() {
     return m_player.nextChapter().value_or(false);
 }

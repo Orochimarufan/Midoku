@@ -105,9 +105,9 @@ public:
         return T::list(*this);
     }
 
-    template<typename T, typename Sel>
-    inline DBResult<std::vector<std::unique_ptr<T>>> select(Sel s) {
-        return T::select(*this, s);
+    template<typename T, typename... Sel>
+    inline DBResult<std::vector<std::unique_ptr<T>>> select(Sel... s) {
+        return T::select(*this, s...);
     }
 };
 

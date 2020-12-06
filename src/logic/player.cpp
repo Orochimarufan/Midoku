@@ -16,9 +16,11 @@ Player::Player(QObject *parent) :
     book_time = chapter_time = book_duration = 0;
     connect(&mpv, &Mpv::timeChanged, this, &Player::updateTime);
     //connect(&mpv, &Mpv::pauseChanged, this, &Player::pauseChanged);
-    connect(&mpv, &Mpv::pauseChanged, this, &Player::updateProgress);
+    connect(&mpv, &Mpv::pauseChanged, this, &Player::onPause);
     connect(this, &Player::chapterChanged, this, &Player::chapterDurationChanged);
     connect(&mpv, &Mpv::endOfFile, this, &Player::nextChapter);
+    connect(&update_timer, &QTimer::timeout, this, &Player::updateProgress);
+    update_timer.setInterval(60000); // 1/min
 }
 
 void Player::updateTime() {
@@ -43,10 +45,19 @@ void Player::updateTime() {
 }
 
 void Player::updateProgress() {
-    if (mp_progress && !mpv.pause()) {
+    if (mp_progress) {
         auto r = mp_progress->update(*mp_chapter, chapter_time);
         if (!r)
             qDebug() << "Progress: Failed" << r.error();
+    }
+}
+
+void Player::onPause(bool paused) {
+    if (paused) {
+        update_timer.stop();
+        updateProgress();
+    } else {
+        update_timer.start();
     }
 }
 
@@ -84,8 +95,9 @@ Result<void> Player::playChapter(ChapterPtr &&c, long start_time, bool start) {
         chapter_time_offset = o;
         chapter_media_offset = mp_chapter->get(Chapter::media_offset).value_or(0);
         chapter_duration = mp_chapter->get(Chapter::length);
-        chapter_time = start_time;
-        auto start_offset = chapter_media_offset + start_time;
+        auto start_time_abs = start_time < 0 ? start_time + chapter_duration : start_time;
+        chapter_time = start_time_abs;
+        auto start_offset = chapter_media_offset + start_time_abs;
         emit chapterChanged(mp_chapter.get());
         QStringList opts;
         if (start_offset > 0)
@@ -116,6 +128,37 @@ Result<void> Player::playResume(Library::ProgressPtr &&prog, bool start) {
 
 void Player::seekChapter(qint64 time) {
     mpv.set_time(chapter_media_offset + time);
+}
+
+Result<void> Player::seekRelative(qint64 diff) {
+    auto time = mpv.time();
+    auto target = time + diff - chapter_media_offset;
+    long offset = 0;
+    return ([this, target](long &offset) -> DBResult<std::optional<ChapterPtr>> {
+        // See if we cross chapter boundaries
+        if (target < 0) {
+            offset = target;
+            return mp_chapter->getPreviousChapter();
+        } else if (target > chapter_duration) {
+            offset = target - chapter_duration;
+            return mp_chapter->getNextChapter();
+        } else {
+            offset = target;
+            return Ok(std::nullopt);
+        }
+    })(offset).bind([this, offset](std::optional<ChapterPtr> c) -> Result<void> {
+        if (c) {
+            return playChapter(std::move(c.value()), offset);
+        } else if (offset != 0) {
+            // Same chapter
+            mpv.set_time(offset + chapter_media_offset);
+            return Ok();
+        } else {
+            // End
+            // FIXME: signal end of book
+            return Ok();
+        }
+    });
 }
 
 Result<bool> Player::nextChapter() {

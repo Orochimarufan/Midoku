@@ -27,7 +27,8 @@ QVariant Chapter::getBookV() {
 }
 
 DBResult<std::optional<std::unique_ptr<Chapter>>> Chapter::getNextChapter() {
-    return database().select<Chapter>(book_id == get(book_id) && chapter == get(chapter) + 1)
+    using namespace Util::ORM;
+    return database().select<Chapter>(book_id == get(book_id) && chapter > get(chapter), Sel::OrderBy(Chapter::chapter, false), Sel::Limit(1))
             .map([] (std::vector<std::unique_ptr<Chapter>> &&cs) -> std::optional<std::unique_ptr<Chapter>> {
         if (cs.size() > 0)
             return std::move(cs[0]);
@@ -47,7 +48,8 @@ QVariant Chapter::getNextChapterV() {
 }
 
 DBResult<std::optional<std::unique_ptr<Chapter>>> Chapter::getPreviousChapter() {
-    return database().select<Chapter>(book_id == get(book_id) && chapter == get(chapter) - 1)
+    using namespace Util::ORM;
+    return database().select<Chapter>(book_id == get(book_id) && chapter < get(chapter), Sel::OrderBy(Chapter::chapter, true), Sel::Limit(1))
             .map([] (std::vector<std::unique_ptr<Chapter>> &&cs) -> std::optional<std::unique_ptr<Chapter>> {
         if (cs.size() > 0)
             return std::move(cs[0]);

@@ -54,14 +54,20 @@ bool ImportState::finalize() {
     } else {
         // File contains multiple chapters
         info.multi_chapter = true;
-        info.chapters.resize(chaps.size());
-        for (auto &chap : chaps)
-            info.chapters[chap.first-1] = chap.second;
+        info.chapters.clear();
+        info.chapters.reserve(chaps.size());
+        for (auto [_, chap]: chaps)
+            info.chapters.emplace_back(chap);
+        std::stable_sort(info.chapters.begin(), info.chapters.end(),
+                         [](ChapterInfo const &a, ChapterInfo const &b){
+            return a.start<b.start;
+        });
 
         for (size_t i = 0; i<chaps.size() - 1; i++)
             if (info.chapters[i].end < 0 && info.chapters[i].length < 0)
                 info.chapters[i].end = info.chapters[i+1].start;
-        info.chapters[-1].end = length;
+        if (info.chapters.back().end < 0 && info.chapters.back().length < 0)
+            info.chapters.back().end = length;
 
         // In this case, prefer to use title tag for book title
         if (title.isNull()) {

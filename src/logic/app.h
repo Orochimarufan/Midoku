@@ -39,6 +39,7 @@ public:
     Q_INVOKABLE bool playBook(long book);
     Q_INVOKABLE bool seekBook(long total_time);
     Q_INVOKABLE bool seekChapter(long time);
+    Q_INVOKABLE bool seekRelative(long diff);
     Q_INVOKABLE bool nextChapter();
     Q_INVOKABLE bool previousChapter();
     bool loadRecentBook();

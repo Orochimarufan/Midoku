@@ -7,6 +7,7 @@
 #include "error.h"
 
 #include <QObject>
+#include <QTimer>
 
 
 namespace Midoku {
@@ -16,6 +17,8 @@ class Player : public QObject
     Q_OBJECT
 
     Mpv mpv;
+
+    QTimer update_timer;
 
     Library::BookPtr mp_book;
     Library::ChapterPtr mp_chapter;
@@ -38,6 +41,7 @@ class Player : public QObject
 
     void updateTime();
     void updateProgress();
+    void onPause(bool);
 
     Q_PROPERTY(Mpv *mpv READ getMpv)
     //Q_PROPERTY(bool pause READ pause WRITE pause NOTIFY pauseChanged)
@@ -90,6 +94,7 @@ public:
     Result<void> playChapter(Library::ChapterPtr &&chap, long start_time=0, bool start=true);
     Result<void> playResume(Library::ProgressPtr &&prog, bool start=true);
     void seekChapter(qint64 time);
+    Result<void> seekRelative(qint64 time);
     Result<bool> nextChapter();
     Result<bool> previousChapter();
 

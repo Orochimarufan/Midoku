@@ -10,9 +10,17 @@ Kirigami.Page {
 
     property var player: app.player
     property var mpv: player.mpv
+    property var locked: false
 
     function playBook(book) {
         app.playBook(book)
+    }
+
+    Shortcut {
+        autoRepeat: false
+        sequence: "Space"
+
+        onActivated: mpv.pause = !mpv.pause
     }
 
     header: ToolBar {
@@ -41,6 +49,8 @@ Kirigami.Page {
 
             ToolButton {
                 text: "Lock"
+                checkable: true
+                onCheckedChanged: locked = checked
             }
         }
     }
@@ -96,6 +106,7 @@ Kirigami.Page {
             value: player.time_book
 
             onMoved: app.seekBook(value)
+            enabled: !locked
         }
 
         TimeLabel {
@@ -118,6 +129,7 @@ Kirigami.Page {
             to: player.duration_chapter
             value: player.time_chapter
             onMoved: app.seekChapter(value)
+            enabled: !locked
         }
 
         TimeLabel {
@@ -150,6 +162,7 @@ Kirigami.Page {
 
                 text: "Next >>"
                 onClicked: app.nextChapter()
+                enabled: !locked
             }
 
             Button {
@@ -158,6 +171,23 @@ Kirigami.Page {
 
                 text: "<< Prev"
                 onClicked: app.previousChapter()
+                enabled: !locked
+            }
+
+            Button {
+                anchors.bottom: parent.bottom
+                anchors.left: parent.left
+
+                text: "<< 1m"
+                onClicked: app.seekRelative(-60)
+            }
+
+            Button {
+                anchors.bottom: parent.bottom
+                anchors.right: parent.right
+
+                text: "1m >>"
+                onClicked: app.seekRelative(60)
             }
         }
     }
