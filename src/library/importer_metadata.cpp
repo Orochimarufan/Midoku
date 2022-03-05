@@ -6,6 +6,7 @@
 #include <taglib/tpropertymap.h>
 
 #include <QDebug>
+#include <string>
 
 #include "importer_metadata.h"
 
@@ -16,6 +17,10 @@ namespace fs = std::filesystem;
 // Metadata parsing
 
 namespace Midoku::Library {
+
+static inline auto get_numbered_total(QString s) {
+    return s.contains('/')? s.splitRef('/')[0].toInt() : s.toInt();
+}
 
 bool ImportState::finalize() {
     // Do Author/Reader guessing
@@ -34,10 +39,10 @@ bool ImportState::finalize() {
 
         int no = 0; // FIXME: deal with broken metadata in a way that doesn't trigger the unique constraint. Might want to sort files into containing folders and try to guess from file order
         if (!track.isNull()) {
-            if (track.contains('/'))
-                no = track.split('/')[0].toInt();
-            else
-                no = track.toInt();
+            no = get_numbered_total(track);
+            // These will be renumbered later
+            if (!disc.isNull())
+                no |= get_numbered_total(disc) << 16;
         }
 
         // Add a single chapter
@@ -56,7 +61,7 @@ bool ImportState::finalize() {
         info.multi_chapter = true;
         info.chapters.clear();
         info.chapters.reserve(chaps.size());
-        for (auto [_, chap]: chaps)
+        for (const auto &[_, chap]: chaps)
             info.chapters.emplace_back(chap);
         std::stable_sort(info.chapters.begin(), info.chapters.end(),
                          [](ChapterInfo const &a, ChapterInfo const &b){
@@ -108,8 +113,12 @@ MediaInfo ogg_process(const fs::path &file, const QMimeType &type) {
             return std::make_unique<TagLib::Ogg::Vorbis::File>(file.c_str());
         else if (type.inherits("audio/x-flac+ogg"))
             return std::make_unique<TagLib::Ogg::FLAC::File>(file.c_str());
+        else if (type.inherits("audio/ogg"))
+            return std::make_unique<TagLib::Ogg::Opus::File>(file.c_str()); // FIXME temporary
         else
-            assert(false && "Unknown OGG file type");
+            throw std::runtime_error(QStringLiteral("Unknown OGG file type %4 %1 %2 %3")
+                                     .arg(type.name(), type.aliases().join(","), type.allAncestors().join(","), file.c_str())
+                                     .toStdString());
     }();
 
     s.readAudioProperties(ogg->audioProperties());
@@ -133,8 +142,8 @@ MediaInfo ogg_process(const fs::path &file, const QMimeType &type) {
             if (tag.rfind("NAME") != -1)
                 it->second.name = tqstr(kv.second);
         }
-        else
-            qDebug() << "Unknown OGG TAG:" << tag.toCString() << "=" << tqstr(kv.second);
+        //else
+        //    qDebug() << "Unknown OGG TAG:" << tag.toCString() << "=" << tqstr(kv.second);
     }
 
     // Pictures

@@ -69,6 +69,7 @@ struct ImportState {
     QString album;
     QString title;
     QString track;
+    QString disc;
     std::unordered_map<int, ChapterInfo> chaps;
 
     inline ImportState(const std::filesystem::path &file) :
@@ -93,6 +94,8 @@ struct ImportState {
             title = tqstr(value);
         else if (tag == "TRACKNUMBER")
             track = tqstr(value);
+        else if (tag == "DISCNUMBER")
+            disc = tqstr(value);
         else
             return false;
         return true;

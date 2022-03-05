@@ -6,14 +6,13 @@
 #include <QImage>
 #include <QImageReader>
 #include <QBuffer>
+#include <QCollator>
 
 #include "importer.h"
 #include "importer_metadata.h"
 #include "book.h"
 #include "chapter.h"
 #include "blob.h"
-
-#include "mpv/mpv.h"
 
 namespace fs = std::filesystem;
 
@@ -190,6 +189,8 @@ DBResult<void> Importer::process_dir(const std::set<fs::path> &files) {
                     b = std::move(books[0]);
                 }
 
+                qDebug() << "Found Book" << info.title << "by" << info.author;
+
                 // Handle cover
                 if (!cover_file.isNull() && !b->get(Book::cover_blob_id).has_value()) {
                     // Scale image
@@ -208,14 +209,57 @@ DBResult<void> Importer::process_dir(const std::set<fs::path> &files) {
                     if (!r) return r.discard();
                 }
 
+                auto mediae = it.second;
+
+                // Detect broken chapters
+                int renumber = [&](){
+                    if (mediae.size() <= 1 && !mediae[0].multi_chapter)
+                        return 0;
+                    std::vector<int> numbers;
+                    for (auto &info : mediae)
+                        for (auto &chap : info.chapters)
+                            numbers.push_back(chap.no);
+                    std::sort(numbers.begin(), numbers.end());
+                    int expect = 1;
+                    int result = 0;
+                    for (int i : numbers) {
+                        if (i & 0xFFFF0000)
+                            result = 2;
+                        if (i < expect)
+                            return 1;
+                        else
+                            expect = i;
+                    }
+                    return result;
+                }();
+
+
+                if (renumber == 1) {
+                    // Last resort: renumber by filename sorting
+                    // Make sure filenames are sorted if we're renumbering
+                    QCollator collate;
+                    collate.setNumericMode(true);
+                    std::sort(mediae.begin(), mediae.end(), [&collate](auto& a, auto& b) {
+                        return collate.compare(a.media, b.media) < 0;
+                    });
+                } else if (renumber == 2) {
+                    // renumber by old chapter numbers, but still renumber
+                    std::sort(mediae.begin(), mediae.end(), [](auto& a, auto& b) {
+                        return a.chapters.front().no < b.chapters.front().no;
+                    });
+                }
+
                 // Add chapters
-                for (auto &info : it.second) {
+                int renumber_count = 0;
+                for (auto &info : mediae) {
                     // Add chapters from info
-                    int count = 1;
+                    int mc_count = 0;
                     for (auto & chap : info.chapters) {
+                        long chapter_no = renumber? ++renumber_count: chap.no;
                         // only set media_chapter for files that actually contain multiple chapters
-                        std::optional<int> i = info.multi_chapter ? std::optional(count++) : std::nullopt;
-                        Chapter c(db, *b, chap.no, chap.get_length(), info.media, chap.start, i, chap.name);
+                        std::optional<int> mc = info.multi_chapter ? std::optional(++mc_count) : std::nullopt;
+                        qDebug() << "> Found Chapter" << chapter_no << chap.name << "from" << info.media.mid(info.media.lastIndexOf('/')+1) << mc.value_or(0);
+                        Chapter c(db, *b, chapter_no, chap.get_length(), info.media, chap.start, mc, chap.name);
                         auto r = c.save();
                         if (!r)
                             return r.discard();

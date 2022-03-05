@@ -621,7 +621,7 @@ public:
 #endif
 
         // Prepare
-        qDebug() << "Save/SQL:" << query;
+        //qDebug() << "Save/SQL:" << query;
         auto q = database().prepare(query);
 
         Util::tuple_enumerate_foreach(Self::Table::columns, [&q, this, id] (size_t i, auto col) {
@@ -637,7 +637,7 @@ public:
             q.bindValue(placeholders[i], v);
         });
 
-        qDebug() << "Save/bound:" << q.boundValues();
+        //qDebug() << "Save/bound:" << q.boundValues();
 
         // Execute
         if (!q.exec())
