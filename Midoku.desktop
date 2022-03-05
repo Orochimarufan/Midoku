@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Midoku 味読
+Comment=WIP bare-bones Audiobook Player
+Exec=/usr/bin/env Midoku
+Terminal=false
+Categories=AudioVideo;Player;
+Icon=elisa
