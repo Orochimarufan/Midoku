@@ -1,7 +1,6 @@
 #pragma once
 
 #include <tuple>
-#include <initializer_list>
 
 #include <cstdlib>
 
@@ -18,14 +17,9 @@ struct type_sequence;
 template <typename... Ts>
 struct type_sequence_common
 {
-    template <typename... Ts2>
-    using prepend = type_sequence<Ts2..., Ts...>;
-
-    template <typename... Ts2>
-    using append = type_sequence<Ts..., Ts2...>;
-
-    template <typename T>
-    using concat = typename T::template prepend<Ts...>;
+    template <typename... Ts2> using prepend = type_sequence<Ts2..., Ts...>;
+    template <typename... Ts2> using append = type_sequence<Ts..., Ts2...>;
+    template <typename T>      using concat = typename T::template prepend<Ts...>;
 
     static constexpr size_t size = sizeof...(Ts);
 
@@ -62,10 +56,6 @@ struct type_sequence_common
     // Tuples
     using tuple = std::tuple<Ts...>;
 
-    // STL shortcuts
-    template <size_t I>
-    using type = typename std::tuple_element<I, tuple>::type;
-
     // Index sequences
     using index_sequence = std::index_sequence_for<Ts...>;
 };
@@ -85,19 +75,35 @@ struct type_sequence<Head, Tail...> : public type_sequence_common<Head, Tail...>
 
     static constexpr bool is_empty = false;
     static constexpr bool is_last = tail::is_empty;
-    using last = typename std::conditional<is_last, head, typename tail::last>::type;
 
     template <typename T>
-    static constexpr size_t index = std::is_same_v<T, Head> ? 0 : tail::template index<T> + 1;
+    static constexpr ssize_t index = std::is_same_v<T, Head> ? 0 : tail::template index<T> + 1;
 
     template <typename T>
     static constexpr bool contains = std::is_same_v<T, Head> ? true : tail::template contains<T>;
+
+    template <bool is_last> struct _last       { using type = typename tail::last; };
+    template <>             struct _last<true> { using type = Head; };
+    using last = typename _last<tail::is_empty>::type;
+
+    template <std::size_t I> struct _get    { using type = typename tail::template _get<I-1>::type; };
+    template <>              struct _get<0> { using type = Head; };
+    template <std::size_t I> using get = typename _get<I>::type;
 
     // Filtering
     template <template<typename>typename TypeFilter>
     using filter = typename std::conditional<TypeFilter<Head>::value,
                 typename tail::template filter<TypeFilter>::template prepend<Head>,
                 typename tail::template filter<TypeFilter>>::type;
+
+    template <template<typename>typename TypeKey, template<typename>typename TypeFilter>
+    using filter_by_key = typename std::conditional<TypeFilter<typename TypeKey<Head>::type>::value,
+                typename tail::template filter_by_key<TypeKey, TypeFilter>::template prepend<Head>,
+                typename tail::template filter_by_key<TypeKey, TypeFilter>>::type;
+
+    using make_unique = typename std::conditional<!tail::template contains<Head>,
+                typename tail::make_unique::template prepend<Head>,
+                typename tail::make_unique>::type;
 
     // Folding
     template <template <typename> typename FoldFunctor, typename B>
@@ -112,20 +118,16 @@ struct type_sequence<Head, Tail...> : public type_sequence_common<Head, Tail...>
 template <>
 struct type_sequence<> : public type_sequence_common<>
 {
-    using last = void;
     static constexpr bool is_empty = true;
 
     template <template<typename> typename TypeFilter>
     using filter = type_sequence<>;
+    template <template<typename>typename TypeKey, template<typename>typename TypeFilter>
+    using filter_by_key = type_sequence<>;
+    using make_unique = type_sequence<>;
 
     template <typename T>
-    struct _index_guard {
-        static_assert (!std::is_void_v<T>, "index<> on non-element");
-        static constexpr size_t dummy = 0;
-    };
-
-    template <typename T>
-    static constexpr size_t index = _index_guard<T>::dummy;
+    static constexpr ssize_t index = -1;
 
     template <typename T>
     static constexpr bool contains = false;
