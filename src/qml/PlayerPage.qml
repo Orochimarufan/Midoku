@@ -10,7 +10,7 @@ Kirigami.Page {
 
     property var player: app.player
     property var mpv: player.mpv
-    property var locked: false
+    property bool locked: false
 
     function playBook(book) {
         app.playBook(book)
@@ -38,7 +38,9 @@ Kirigami.Page {
             }
 
             ToolButton {
+                id: volumeButton
                 text: "Volume"
+                onClicked: volumePopup.open()
             }
 
             ToolButton {
@@ -87,6 +89,22 @@ Kirigami.Page {
             }
 
             onValueModified: mpv.speed = realValue
+        }
+    }
+
+    Popup {
+        id: volumePopup
+        modal: true
+        focus: true
+        closePolicy: Popup.CloseOnPressOutside | Popup.CloseOnEscape
+        x: volumeButton.x
+        y: volumeButton.y
+
+        contentItem: Slider {
+            from: 0
+            to: 100
+            value: mpv.volume
+            onMoved: mpv.volume = value
         }
     }
 
@@ -180,6 +198,7 @@ Kirigami.Page {
 
                 text: "<< 1m"
                 onClicked: app.seekRelative(-60)
+                enabled: !locked
             }
 
             Button {
@@ -188,6 +207,7 @@ Kirigami.Page {
 
                 text: "1m >>"
                 onClicked: app.seekRelative(60)
+                enabled: !locked
             }
         }
     }
