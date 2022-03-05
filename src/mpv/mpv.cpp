@@ -1,10 +1,9 @@
 #include "mpv.h"
 
-#include <array>
 #include <cstring>
 
 #include <QDebug>
-#include <QTimer>
+//#include <QTimer>
 #include <QThread>
 #include <QGuiApplication>
 
@@ -330,34 +329,23 @@ void Mpv::wakeup(void *ctx)
 // ----------------------------------------------------------------------------
 // Property & Type black magic
 struct mpv_property_meta {
-    template<typename T, int id>
-    using property = Mpv::mpv_property<T, id>;
+    template <int id>
+    using property = Mpv::mpv_property<id>;
+    static constexpr int count = Mpv::mpv_property_count;
 
-    template<typename T>
-    using property_count = Mpv::mpv_property_count<T>;
-
-    using property_types = Mpv::mpv_property_types;
+    template <int... Is> using int_sequence = std::integer_sequence<int, Is...>;
+    template <int N> using make_int_sequence = std::make_integer_sequence<int, N>;
+    using make_id_sequence = make_int_sequence<count>;
 
     // --------------------------------------------------------------
     // Registering MPV properties
     static inline void register_all(mpv_handle *mpv) {
-        register_for_types(mpv, property_types());
+        register_property_seq(mpv, make_id_sequence());
     }
 
-    // Register properties of given types with mpv
-    template<typename... Ts>
-    static inline void register_for_types(mpv_handle *mpv, mpv_type::seq<Ts...>) {
-        (register_for_type<Ts>(mpv), ...);
-    }
-
-    template<typename T>
-    static inline void register_for_type(mpv_handle *mpv) {
-        register_for_type_seq<T>(mpv, std::make_index_sequence<property_count<T>::value>());
-    }
-
-    template<typename T, std::size_t... Is>
-    static inline void register_for_type_seq(mpv_handle *mpv, std::index_sequence<Is...>) {
-        (register_property<property<T, Is>>(mpv), ...);
+    template <int... Is>
+    static inline void register_property_seq(mpv_handle *mpv, int_sequence<Is...>) {
+        (register_property<property<Is>>(mpv), ...);
     }
 
     // Register a property with mpv
@@ -369,55 +357,33 @@ struct mpv_property_meta {
     }
 
     // --------------------------------------------------------------
-    // Signal Tables
+    // Emitting
     template <typename T>
     using signal_t = void (Mpv::*)(const T &);
 
     template <typename T>
-    using signal_table_t = std::array<signal_t<T>, property_count<T>::value>;
-
-    // construct signal table for type
-    template <typename T>
-    static constexpr auto signals_for_type() {
-        return signals_for_type_seq<T>(std::make_index_sequence<property_count<T>::value>());
-    }
-
-    template<typename T, std::size_t... Is>
-    static constexpr auto signals_for_type_seq(std::index_sequence<Is...>) {
-        return signal_table_t<T>{property<T, Is>::signal...};
-    }
-
-    // static tables
-    template <typename T>
-    static constexpr signal_table_t<T> signal_table = signals_for_type<T>();
-
-    // --------------------------------------------------------------
-    // Emitting
-    template <typename T>
-    inline static void try_emit(Mpv *self, mpv_event_property *p, uint64_t id) {
+    inline static void try_emit(Mpv *self, mpv_event_property *p, uint64_t id, signal_t<T> sig) {
         std::optional<T> v = mpv_type::property<T>::unpack_event(p);
         if (v.has_value()) {
             //qDebug() << "Mpv/try_emit:" << p->name << "=" << v.value();
-            emit (self->*signal_table<T>[id])(v.value());
+            emit (self->*sig)(v.value());
         } else
             qWarning() << "Mpv/try_emit: Wrong Format: Expected" << mpv_type::format<T>::id << "but got" << p->format << "with id" << id;
     }
 
-    // Type inference
-    // Infer signal type from given format by recursing over mpv_property_types
-    static inline void try_emit_infer(Mpv *mpv, mpv_event_property *p, uint64_t u) {
-        try_emit_infer(mpv, p, u, property_types());
+    // Search for signal
+    static inline void find_emit(Mpv *mpv, mpv_event_property *p, uint64_t u) {
+        find_emit(mpv, p, u, make_id_sequence());
     }
 
-    template<typename A, typename... Ts>
-    static inline void try_emit_infer(Mpv *mpv, mpv_event_property *p, uint64_t u, mpv_type::seq<A, Ts...>) {
-        if (p->format == mpv_type::format<A>::id)
-            return try_emit<A>(mpv, p, u);
-        return try_emit_infer(mpv, p, u, mpv_type::seq<Ts...>());
+    template<int I, int... Is>
+    static inline void find_emit(Mpv *mpv, mpv_event_property *p, uint64_t u, int_sequence<I, Is...>) {
+        if (u == I)
+            return try_emit<typename property<I>::type>(mpv, p, u, property<I>::signal);
+        return find_emit(mpv, p, u, int_sequence<Is...>());
     }
 
-    template<typename...>
-    static inline void try_emit_infer(Mpv *, mpv_event_property *p, uint64_t u, mpv_type::seq<>) {
+    static inline void find_emit(Mpv *, mpv_event_property *p, uint64_t u, int_sequence<>) {
         // Default case
         qWarning() << "Mpv/processEvents: Unknown format in property notification:" << p->format << u;
     }
@@ -452,7 +418,7 @@ void Mpv::processEvent(mpv_event *e) {
         if (p->format == MPV_FORMAT_NONE) {
             qWarning() << "Mpv/processEvents: Got MPV_FORMAT_NONE property notification";
         } else {
-            mpv_property_meta::try_emit_infer(this, p, e->reply_userdata);
+            mpv_property_meta::find_emit(this, p, e->reply_userdata);
         }
     }
 

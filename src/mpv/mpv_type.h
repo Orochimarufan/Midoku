@@ -1,8 +1,6 @@
 #pragma once
 
 #include <optional>
-#include <tuple>
-#include <utility>
 
 #include <QString>
 #include <QVariant>
@@ -13,15 +11,6 @@
 // MPV type conversion
 // ========================================================
 namespace mpv_type {
-// Sequence of types like std::index_sequence
-template<typename ...Ts>
-struct seq {
-    using tuple = std::tuple<Ts...>;
-    using size = std::tuple_size<tuple>;
-    template<size_t I> using element = std::tuple_element<I, tuple>;
-    using make_index_sequence = std::make_index_sequence<size::value>;
-};
-
 // mpv/C type mapping
 template<typename T>
 struct format {

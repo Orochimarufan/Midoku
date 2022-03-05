@@ -8,13 +8,13 @@
 // ========================================================
 // MPV Player Interface
 // ========================================================
-#define MPV_PROPERTY(type_, id_, name, mpv_name_) \
+#define MPV_PROPERTY(id_, type_, name, mpv_name_) \
     Q_PROPERTY(type_ name READ name WRITE set_ ## name NOTIFY name ## Changed) \
     public: type_ name() { return getPropertyValue<type_>(mpv_name_).value_or(type_{}); } \
     void set_ ## name(const type_ &value) { setPropertyValue(mpv_name_, value); } \
     Q_SIGNALS: void name ## Changed(const type_ &); \
     private:\
-    template<> struct mpv_property<type_, id_> {\
+    template<> struct mpv_property<id_> {\
         using type = type_;\
         static constexpr int id = id_;\
         static constexpr const char *qt_name = #name;\
@@ -22,10 +22,8 @@
         static constexpr void (Mpv::*signal)(const type_ &) = &Mpv::name ## Changed;\
     };
 
-#define MPV_PROPERTY_MAX(type, count) \
-    template<> struct mpv_property_count<type> {\
-        static constexpr int value = count;\
-    };
+#define MPV_PROPERTY_MAX(count) \
+    private: static constexpr int mpv_property_count = count;
 
 class MpvThread;
 
@@ -39,26 +37,18 @@ class Mpv : public QObject
     MpvThread *mpv_thread;
 
     // MPV Properties
-    template <typename T, int id> struct mpv_property {};
-    template <typename T> struct mpv_property_count { /* static int value */ };
+    template <int id> struct mpv_property {};
     friend struct mpv_property_meta;
 
-    MPV_PROPERTY(bool, 0, pause, "pause")
-    MPV_PROPERTY_MAX(bool, 1)
-
-    MPV_PROPERTY(qint64, 0, time, "time-pos")
-    MPV_PROPERTY(qint64, 1, duration, "duration")
-    MPV_PROPERTY_MAX(qint64, 2)
-
-    MPV_PROPERTY(double, 0, speed, "speed")
-    MPV_PROPERTY_MAX(double, 1)
-
-    MPV_PROPERTY(QString, 0, mediaTitle, "media-title")
-    MPV_PROPERTY(QString, 1, mediaAlbum, "metadata/by-key/album")
-    MPV_PROPERTY(QString, 2, mediaArtist, "metadata/by-key/artist")
-    MPV_PROPERTY_MAX(QString, 3)
-
-    using mpv_property_types = mpv_type::seq<bool, qint64, double, QString>;
+    MPV_PROPERTY(0, bool, pause, "pause")
+    MPV_PROPERTY(1, qint64, time, "time-pos")
+    MPV_PROPERTY(2, qint64, duration, "duration")
+    MPV_PROPERTY(3, double, speed, "speed")
+    MPV_PROPERTY(4, double, volume, "volume")
+    MPV_PROPERTY(5, QString, mediaTitle, "media-title")
+    MPV_PROPERTY(6, QString, mediaAlbum, "metadata/by-key/album")
+    MPV_PROPERTY(7, QString, mediaArtist, "metadata/by-key/artist")
+    MPV_PROPERTY_MAX(8)
 
 public:
     Mpv(QObject *parent=nullptr);
