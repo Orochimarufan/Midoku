@@ -74,43 +74,32 @@ ToolButton {
 
     // Config popup
     onDurationChanged: spinBox.value = duration
-    Popup {
+
+    RowPopup {
         id: popup
+        text: "Sleep Timer"
 
-        modal: true
-        focus: true
-        closePolicy: Popup.CloseOnPressOutside | Popup.CloseOnEscape
+        SpinBox {
+            id: spinBox
+            from: 1
+            value: sleep.duration
+            stepSize: 10
 
-        contentItem: Row {
-            spacing: 3
+            onValueModified: sleep.duration = value
+        }
 
-            Label {
-                anchors.verticalCenter: parent.verticalCenter
-                text: "Sleep:"
-            }
+        Label {
+            anchors.verticalCenter: parent.verticalCenter
+            text: "min"
+        }
 
-            SpinBox {
-                id: spinBox
-                from: 1
-                value: sleep.duration
-                stepSize: 10
-
-                onValueModified: sleep.duration = value
-            }
-
-            Label {
-                anchors.verticalCenter: parent.verticalCenter
-                text: "min."
-            }
-
-            Button {
-                text: sleep.active? "Stop" : "Start"
-                checkable: true
-                checked: sleep.active
-                onToggled: {
-                    sleep.active = !sleep.active
-                    popup.close()
-                }
+        Button {
+            text: sleep.active? "Stop" : "Start"
+            checkable: true
+            checked: sleep.active
+            onToggled: {
+                sleep.active = !sleep.active
+                popup.close()
             }
         }
     }

@@ -14,14 +14,11 @@ Kirigami.Page {
     property var mpv: player.mpv
     property bool locked: false
 
+    id: root
+
+    // ------ Misc ------
     function playBook(book) {
         app.playBook(book)
-    }
-
-    Settings {
-        category: "Sleep"
-        property alias active: sleep.active
-        property alias duration: sleep.duration
     }
 
     Shortcut {
@@ -31,9 +28,8 @@ Kirigami.Page {
         onActivated: mpv.pause = !mpv.pause
     }
 
+    // ------ ToolBar ------
     header: ToolBar {
-        id: tools
-
         RowLayout {
             anchors.fill: parent
 
@@ -47,16 +43,30 @@ Kirigami.Page {
                 Layout.fillWidth: true
             }
 
-            ToolButton {
-                id: volumeButton
+            PopupButton {
                 text: "Volume"
-                onClicked: volumePopup.open()
+                alignRight: true
+                label: "Volume"
+                Slider {
+                    from: 0
+                    to: 100
+                    value: mpv.volume
+                    onMoved: mpv.volume = value
+                }
             }
 
-            ToolButton {
-                id: speedButton
+            PopupButton {
                 text: "Speed"
-                onClicked: speedPopup.open()
+                alignRight: true
+                label: "Playback Speed"
+                RealSpinBox {
+                    decimals: 2
+                    realFrom: 0.2
+                    realTo: 5
+                    realStep: 0.1
+                    realValue: mpv.speed
+                    onValueModified: mpv.speed = realValue
+                }
             }
 
             ToolButton {
@@ -64,57 +74,6 @@ Kirigami.Page {
                 checkable: true
                 onCheckedChanged: locked = checked
             }
-        }
-    }
-
-    Popup {
-        id: speedPopup
-        modal: true
-        focus: true
-        closePolicy: Popup.CloseOnPressOutside | Popup.CloseOnEscape
-        x: speedButton.x
-        y: speedButton.y
-
-        contentItem: SpinBox {
-            from: 0
-            value: 100
-            to: 1000
-            stepSize: 10
-            anchors.centerIn: parent
-
-            property int decimals: 2
-            property real realValue: value / 100
-
-            validator: DoubleValidator {
-                bottom: 0
-                top: 1000
-            }
-
-            textFromValue: function (valuelocale) {
-                return Number(value / 100).toLocaleString(locale, 'f', decimals)
-            }
-
-            valueFromText: function (textlocale) {
-                return Number.fromLocaleString(locale, text) * 100
-            }
-
-            onValueModified: mpv.speed = realValue
-        }
-    }
-
-    Popup {
-        id: volumePopup
-        modal: true
-        focus: true
-        closePolicy: Popup.CloseOnPressOutside | Popup.CloseOnEscape
-        x: volumeButton.x
-        y: volumeButton.y
-
-        contentItem: Slider {
-            from: 0
-            to: 100
-            value: mpv.volume
-            onMoved: mpv.volume = value
         }
     }
 
@@ -219,6 +178,34 @@ Kirigami.Page {
                 onClicked: app.seekRelative(60)
                 enabled: !locked
             }
+        }
+    }
+    // ------ Persistent Settings ------
+    Settings {
+        category: "Sleep"
+        property alias active: sleep.active
+        property alias duration: sleep.duration
+    }
+
+    Settings {
+        id: playerSettings
+        category: "Player"
+        property alias uiLocked: root.locked
+
+        // Cannot use property aliases with mpv properties
+        Component.onCompleted: {
+            var speed = value("speed", null)
+            if (speed !== null)
+                mpv.speed = speed
+            mpv.speedChanged.connect(function() {
+                playerSettings.setValue("speed", mpv.speed)
+            })
+            var volume = value("volume", null)
+            if (volume !== null)
+                mpv.volume = volume
+            mpv.volumeChanged.connect(function() {
+                playerSettings.setValue("volume", mpv.volume)
+            })
         }
     }
 }
