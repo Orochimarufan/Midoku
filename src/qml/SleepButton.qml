@@ -31,6 +31,7 @@ ToolButton {
         return (h > 0 ? pad_2(h) + ":" : "") + pad_2(m) + ":" + pad_2(t)
     }
 
+    icon.name: "clock"
     text: active ? format_time(countdown) : "Sleep"
 
     // Main button function

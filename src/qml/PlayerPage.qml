@@ -44,7 +44,18 @@ Kirigami.Page {
             }
 
             PopupButton {
-                text: "Volume"
+                icon.name: {
+                    var v = mpv.volume
+                    if (v === 0)
+                        return "audio-volume-muted"
+                    else if (v <= 33)
+                        return "audio-volume-low"
+                    else if (v <= 66)
+                        return "audio-volume-medium"
+                    else
+                        return "audio-volume-high"
+                }
+                text: mpv.volume.toFixed() + "%"
                 alignRight: true
                 label: "Volume"
                 Slider {
@@ -56,7 +67,8 @@ Kirigami.Page {
             }
 
             PopupButton {
-                text: "Speed"
+                icon.name: "speedometer"
+                text: mpv.speed !== 1 ? (mpv.speed * 100).toFixed() + "%" : null
                 alignRight: true
                 label: "Playback Speed"
                 RealSpinBox {
@@ -70,13 +82,14 @@ Kirigami.Page {
             }
 
             ToolButton {
-                text: "Lock"
+                icon.name: locked ? "object-locked" : "object-unlocked"
                 checkable: true
                 onCheckedChanged: locked = checked
             }
         }
     }
 
+    // ------ Main Container -------
     ColumnLayout {
         anchors.fill: parent
 
@@ -126,6 +139,7 @@ Kirigami.Page {
             total: player.duration_chapter
         }
 
+        // Art/Button area
         Item {
             Layout.fillHeight: true
             Layout.fillWidth: true
@@ -139,7 +153,8 @@ Kirigami.Page {
             Button {
                 anchors.centerIn: parent
 
-                text: mpv.pause ? "Play |>" : "Pause ||"
+                icon.name: mpv.pause ? "media-playback-start" : "media-playback-pause"
+                text: mpv.pause ? "Play" : "Pause"
                 onClicked: mpv.pause = !mpv.pause
             }
 
@@ -147,7 +162,8 @@ Kirigami.Page {
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.right: parent.right
 
-                text: "Next >>"
+                icon.name: "media-skip-forward"
+                text: "Next"
                 onClicked: app.nextChapter()
                 enabled: !locked
             }
@@ -156,7 +172,8 @@ Kirigami.Page {
                 anchors.verticalCenter: parent.verticalCenter
                 anchors.left: parent.left
 
-                text: "<< Prev"
+                icon.name: "media-skip-backward"
+                text: "Prev"
                 onClicked: app.previousChapter()
                 enabled: !locked
             }
@@ -165,7 +182,8 @@ Kirigami.Page {
                 anchors.bottom: parent.bottom
                 anchors.left: parent.left
 
-                text: "<< 1m"
+                icon.name: "media-seek-backward"
+                text: "1m"
                 onClicked: app.seekRelative(-60)
                 enabled: !locked
             }
@@ -174,12 +192,14 @@ Kirigami.Page {
                 anchors.bottom: parent.bottom
                 anchors.right: parent.right
 
-                text: "1m >>"
+                icon.name: "media-seek-forward"
+                text: "1m"
                 onClicked: app.seekRelative(60)
                 enabled: !locked
             }
         }
     }
+
     // ------ Persistent Settings ------
     Settings {
         category: "Sleep"
