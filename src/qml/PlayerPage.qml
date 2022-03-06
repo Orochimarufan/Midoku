@@ -3,9 +3,11 @@ import QtQuick 2.11
 import QtQuick.Controls 2.0
 import QtQuick.Layouts 1.3
 
+import Qt.labs.settings 1.0
+
 import org.kde.kirigami 2.4 as Kirigami
 
-//import midoku.mpv 1.0
+
 Kirigami.Page {
 
     property var player: app.player
@@ -14,6 +16,12 @@ Kirigami.Page {
 
     function playBook(book) {
         app.playBook(book)
+    }
+
+    Settings {
+        category: "Sleep"
+        property alias active: sleep.active
+        property alias duration: sleep.duration
     }
 
     Shortcut {
@@ -29,8 +37,10 @@ Kirigami.Page {
         RowLayout {
             anchors.fill: parent
 
-            ToolButton {
-                text: "Sleep"
+            SleepButton {
+                id: sleep
+                paused: mpv.pause
+                onTimeout: mpv.pause = true
             }
 
             Item {

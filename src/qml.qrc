@@ -5,6 +5,7 @@
         <file>qml/PlayerPage.qml</file>
         <file>qml/TimeLabel.qml</file>
         <file>qml/SettingsPage.qml</file>
+        <file>qml/SleepButton.qml</file>
     </qresource>
     <qresource prefix="/img">
         <file>../banner.jpg</file>
