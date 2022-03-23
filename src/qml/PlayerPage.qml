@@ -118,7 +118,7 @@ Kirigami.Page {
 
         Label {
             id: chapLabel
-            text: player.chapter.chapter + ". " + player.chapter.title
+            text: `${player.chapter.chapter}/${player.book.chapterCount}: ${player.chapter.title}`
         }
 
         Slider {

@@ -20,6 +20,21 @@ QVariantList Book::getChaptersV() {
    }).value_or(QVariantList());
 }
 
+DBResult<long> Book::getChapterCount() {
+    using namespace Util::ORM;
+    return database().exec(Util::ORM::select(Sel::From(Chapter::table, Expr::count()), Chapter::book_id == getId()))
+            .bind([] (QSqlQuery &&q) -> DBResult<long> {
+        if (q.next())
+            return Ok(q.value(0).toInt());
+        else
+            return Err(QSqlError("count() didn't return anything"));
+    });
+}
+
+QVariant Book::getChapterCountV() {
+    return getChapterCount().map([] (long x) {return QVariant::fromValue(x);}).value_or(QVariant());
+}
+
 DBResult<long> Book::getTotalTime() {
     using namespace Util::ORM;
     return database().exec(Util::ORM::select(Sel::From(Chapter::table, Expr::sum(Chapter::length)), Chapter::book_id == getId()))

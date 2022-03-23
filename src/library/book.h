@@ -24,6 +24,7 @@ class Book : public Object<Book>
     friend class Object<Book>;
 
     Q_PROPERTY(QVariantList chapters READ getChaptersV)
+    Q_PROPERTY(QVariant chapterCount READ getChapterCountV)
     Q_PROPERTY(QVariant firstChapter READ getFirstChapterV)
     Q_PROPERTY(QVariant mostRecentProgress READ getMostRecentProgressV)
 
@@ -50,6 +51,9 @@ public:
 
     DBResult<std::vector<std::unique_ptr<Chapter>>> getChapters();
     Q_INVOKABLE QVariantList getChaptersV();
+
+    DBResult<long> getChapterCount();
+    Q_INVOKABLE QVariant getChapterCountV();
 
     DBResult<long> getTotalTime();
     Q_INVOKABLE QVariant getTotalTimeV();

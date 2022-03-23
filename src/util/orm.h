@@ -528,6 +528,11 @@ Fn<long, Expr> min(Expr e) {
     return {"min", e};
 }
 
+inline
+Fn<long> count() {
+    return {"count"};
+}
+
 // Ensure concepts
 struct Stub {
     using type = int;
