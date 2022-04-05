@@ -22,6 +22,7 @@ set(HEADERS
     "logic/error.h"
     "logic/player.h"
     "logic/app.h"
+    "logic/mpris.h"
     "settings.h"
     )
 
@@ -42,10 +43,11 @@ set(SOURCES
     "logic/error.cpp"
     "logic/player.cpp"
     "logic/app.cpp"
+    "logic/mpris.cpp"
     "settings.cpp"
     "qml.qrc"
     )
 
 add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
 target_compile_definitions(${PROJECT_NAME} PRIVATE $<$<OR:$<CONFIG:Debug>,$<CONFIG:RelWithDebInfo>>:QT_QML_DEBUG>)
-target_link_libraries(${PROJECT_NAME} PRIVATE Qt5::Core Qt5::Quick Qt5::Sql mpv PkgConfig::TagLib stdc++fs Qt5::Widgets)
+target_link_libraries(${PROJECT_NAME} PRIVATE Qt5::Core Qt5::Quick Qt5::Sql Qt5::DBus mpv PkgConfig::TagLib stdc++fs Qt5::Widgets)

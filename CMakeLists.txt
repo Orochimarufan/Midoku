@@ -15,7 +15,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 # Dependencies
 include(FindPkgConfig)
 
-find_package(Qt5 COMPONENTS Core Quick Sql Widgets REQUIRED)
+find_package(Qt5 COMPONENTS Core Quick Sql Widgets DBus REQUIRED)
 pkg_check_modules(TagLib REQUIRED IMPORTED_TARGET taglib)
 
 # Components

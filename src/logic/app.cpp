@@ -3,7 +3,10 @@
 #include "error.h"
 #include "library/blob.h"
 #include "library/progress.h"
+#include "mpris.h"
 
+#include <QDBusConnection>
+#include <QDBusError>
 #include <QQuickImageProvider>
 
 namespace Midoku {
@@ -36,7 +39,22 @@ App::App(Library::Database *db) :
     QObject(),
     m_player(this),
     mp_db(db)
-{}
+{
+    // D-Bus
+    new Mpris::MediaPlayer2Adaptor(&m_player);
+    new Mpris::PlayerAdaptor(&m_player);
+    auto bus = QDBusConnection::sessionBus();
+    bus.registerObject("/org/mpris/MediaPlayer2", &m_player);
+    if (!bus.registerService(QLatin1String("org.mpris.MediaPlayer2.midoku"))) {
+        auto err = bus.lastError();
+        if (err.type() == QDBusError::AddressInUse) {
+            if (!bus.registerService(QStringLiteral("org.mpris.MediaPlayer2.midoku.p%1").arg(getpid())))
+                qWarning() << "Could not register MPRIS2 service" << bus.lastError().message();
+        } else {
+            qWarning() << "Could not register MPRIS2 service" << err.message();
+        }
+    }
+}
 
 // QML
 bool App::playBook(long bookid) {
