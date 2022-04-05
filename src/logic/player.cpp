@@ -106,6 +106,8 @@ Result<void> Player::playChapter(ChapterPtr &&c, long start_time, bool start) {
         //    opts << "pause";
         mpv.command(QVariantList() << "loadfile" << mp_chapter->get(Chapter::media) << "replace" << opts.join(","));
         mpv.set_pause(!start);
+        if (start_time_abs > 0)
+            emit seeked();
         return Ok();
     });
 }
@@ -128,6 +130,7 @@ Result<void> Player::playResume(Library::ProgressPtr &&prog, bool start) {
 
 void Player::seekChapter(qint64 time) {
     mpv.set_time(chapter_media_offset + time);
+    emit seeked();
 }
 
 Result<void> Player::seekRelative(qint64 diff) {
@@ -152,6 +155,7 @@ Result<void> Player::seekRelative(qint64 diff) {
         } else if (offset != 0) {
             // Same chapter
             mpv.set_time(offset + chapter_media_offset);
+            emit seeked();
             return Ok();
         } else {
             // End

@@ -104,6 +104,7 @@ signals:
     void bookChanged(Library::Book *);
     void chapterChanged(Library::Chapter *);
     //void pauseChanged();
+    void seeked();
 };
 
 }
